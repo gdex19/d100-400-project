@@ -18,7 +18,7 @@ conda activate final-project
 
 ## Pre-commit
 
-This repository uses pre-commit to enforce consistent code. To install 
+This repository uses pre-commit to enforce consistent code. To install
 pre-commit, run:
 
 ```bash
@@ -32,9 +32,8 @@ pre-commit run --all-files
 ```
 
 # Getting the data
-We have written a script to pull the relevant data from Binance's API into the ```data``` directory. Run the following command in the
-terminal being at the root of the repository.
-
+We have written a script to pull the relevant data from Binance's API into the ```data``` directory. Run the following command
+in the command line to download data:
 ```bash
-python ???/get_data.py 
+download-data --start_date START_DATE --api-key POLYGON_API_KEY
 ```

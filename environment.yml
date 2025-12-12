@@ -3,7 +3,7 @@ channels:
   - defaults
   - conda-forge
 dependencies:
-  - python=3.9
+  - python=3.10
   - polars
   - pandas
   - seaborn
@@ -14,3 +14,5 @@ dependencies:
   - pytest
   - pytest-cov
   - pip
+  - requests
+  - pyarrow
