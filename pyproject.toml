@@ -1,0 +1,19 @@
+[project]
+name = "final_project"
+version = "0.1"
+requires-python = ">=3.10"
+authors = [
+  {name = "Gil Dexter"},
+]
+description = "Predicting Bitcoin volatility!"
+readme = "README.md"
+keywords = ["bitcoin", "data analysis", "data science", "finance"]
+classifiers = [
+  "Programming Language :: Python"
+]
+
+[project.scripts]
+data_loader = "src/data/data_loader:load_data"
+
+[tool.setuptools]
+packages = ["src"]

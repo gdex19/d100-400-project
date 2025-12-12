@@ -1,0 +1,16 @@
+name: final-project
+channels:
+  - defaults
+  - conda-forge
+dependencies:
+  - python=3.9
+  - polars
+  - pandas
+  - seaborn
+  - pre-commit
+  - ipykernel
+  - click
+  - nbformat
+  - pytest
+  - pytest-cov
+  - pip
