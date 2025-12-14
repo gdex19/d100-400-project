@@ -13,7 +13,7 @@ classifiers = [
 ]
 
 [project.scripts]
-download-data = "src.data.query_data:main"
+download-data = "final_project.data.load_data:main"
 
 [tool.setuptools]
-packages = ["src"]
+packages = ["final_project"]
