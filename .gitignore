@@ -1,4 +1,3 @@
-*.csv
 *.pq
 *.egg-info/
 __pycache__/

@@ -1,7 +1,31 @@
 from .preprocessing import (
-    compute_volatility,
+    compute_future_volatility,
     compute_returns,
     compute_squared_returns,
+    add_trading_days,
+    add_dates_and_times,
+    add_data_releases,
+    compute_past_ewm_vols,
+    add_features_responder,
+    write_data,
+    winsorize_predictors,
+    NUM_FEATURES,
+    CAT_FEATURES,
+    RESPONDER,
 )
 
-__all__ = ["compute_volatility", "compute_returns", "compute_squared_returns"]
+__all__ = [
+    "compute_future_volatility",
+    "compute_returns",
+    "compute_squared_returns",
+    "add_trading_days",
+    "add_dates_and_times",
+    "add_data_releases",
+    "compute_past_ewm_vols",
+    "add_features_responder",
+    "write_data",
+    "winsorize_predictors",
+    "NUM_FEATURES",
+    "CAT_FEATURES",
+    "RESPONDER",
+]

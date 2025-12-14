@@ -258,13 +258,13 @@ def load_data(start_date: str, api_key: str, polygon: bool) -> None:
     required=True,
     help='Start date, in format "YYYY/MM/DD"',
 )
-@click.option(
-    "--api_key", required=True, help="Polygon API Key"
-)  # type: ignore
+@click.option("--api_key", help="Polygon API Key")  # type: ignore
 @click.option(
     "--polygon", is_flag=True, help="Include Polygon data"
 )  # type: ignore
 def main(start_date: str, api_key: str, polygon: bool) -> None:
+    if polygon and api_key is None:
+        raise Exception("Requested polygon data without API key")
     load_data(start_date, api_key, polygon)
 
 

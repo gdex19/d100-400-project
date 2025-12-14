@@ -35,5 +35,6 @@ pre-commit run --all-files
 We have written a script to pull the relevant data from Binance's API into the ```data``` directory. Run the following command
 in the command line to download data:
 ```bash
-download-data --start_date START_DATE --api-key POLYGON_API_KEY
+download-data --start_date START_DATE
 ```
+where ```START_DATE``` is of the form YYYY/MM/DD. For our analysis, we used data from 2023/11/01 onwards.

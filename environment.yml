@@ -16,3 +16,5 @@ dependencies:
   - pip
   - requests
   - pyarrow
+  - statsmodels
+  - pandas-market-calendars
