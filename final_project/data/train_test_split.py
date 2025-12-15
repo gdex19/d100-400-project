@@ -4,7 +4,7 @@ from typing import Tuple
 
 
 def split_data(
-    df: pd.DataFrame, train_test_val_split: list[float]
+    df: pd.DataFrame, train_val_test_split: list[float]
 ) -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
     """
     Split data into train/test/val. Only retain every 30 minutes to
@@ -21,13 +21,15 @@ def split_data(
     -------
     pd.DataFrame
     """
-    if sum(train_test_val_split) != 1:
+    if sum(train_val_test_split) != 1:
         raise Exception("Invalid distribution, must sum to 1")
-    percents = np.cumsum(train_test_val_split)
+    percents = np.cumsum(train_val_test_split)
 
     df = df.sort_values(by="open_time", ascending=True)
-    df_ind = df[(df["minute"] == 0) | (df["minute"] == 30)].reset_index(
-        drop=True
+    df_ind = (
+        df[(df["minute"] == 0) | (df["minute"] == 30)]
+        .reset_index(drop=True)
+        .dropna(axis=0)
     )
 
     len = df_ind.shape[0]

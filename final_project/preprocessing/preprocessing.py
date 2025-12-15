@@ -22,18 +22,18 @@ NUM_FEATURES = [
     "past_30m_sq_ret",
     "past_60m_sq_ret",
     "past_120m_sq_ret",
-    # Past realized vols
-    "past_50m_vol",
-    "past_1440m_vol",
-    "past_10080m_vol",
-    "past_43200m_vol",
+    # Past realized vols (rolling)
+    "past_1440m_vol",  # 1 day
+    "past_10080m_vol",  # 7 days
+    "past_43200m_vol",  # 30 days
+    # EWM volatility features
+    "past_50m_span_ewm_vol",
+    "past_50m_vol_pct_change",
+    # Market activity
     "past_30m_quote_volume",
     "past_30m_trades",
-]
-
-CAT_FEATURES = [
-    "event_code",
-    "time_of_day",
+    "quote_volume_pct_change",
+    # Binary indicators
     "is_us_trading_day",
     "is_eu_trading_day",
     "is_uk_trading_day",
@@ -42,6 +42,11 @@ CAT_FEATURES = [
     "is_hk_trading_day",
     "is_us_dst",
     "is_eu_dst",
+]
+
+CAT_FEATURES = [
+    "event_code",
+    "time_of_day",
 ]
 
 
@@ -104,7 +109,9 @@ def add_trading_days(df: pd.DataFrame) -> pd.DataFrame:
             start_date=min(dates),
             end_date=max(dates),
         )
-        df[f"is_{key}_trading_day"] = dates.isin(sched.index.astype(str))
+        df[f"is_{key}_trading_day"] = dates.isin(
+            sched.index.astype(str)
+        ).astype(int)
 
     return df
 
@@ -136,8 +143,8 @@ def add_dst(df: pd.DataFrame) -> pd.DataFrame:
         (dates >= "2025-03-30") & (dates <= "2025-10-26")
     )
 
-    df["is_us_dst"] = us_dst
-    df["is_eu_dst"] = eu_dst
+    df["is_us_dst"] = us_dst.astype(int)
+    df["is_eu_dst"] = eu_dst.astype(int)
 
     return df
 
@@ -168,7 +175,8 @@ def add_lagged_metadata(
     df: pd.DataFrame,
 ) -> pd.DataFrame:
     """
-    Add last 30 minutes cumulative number of trades and quote volume.
+    Add last 30 minutes cumulative number of trades and quote volume,
+    and percent change in quote volume from 60-30 to 30-0.
 
     Parameters
     ----------
@@ -183,6 +191,9 @@ def add_lagged_metadata(
     df["past_30m_trades"] = df["number_of_trades"].rolling(30).sum().shift(1)
     df["past_30m_quote_volume"] = (
         df["quote_asset_volume"].rolling(30).sum().shift(1)
+    )
+    df["quote_volume_pct_change"] = (
+        df["past_30m_quote_volume"] / df["past_30m_quote_volume"].shift(1) - 1
     )
 
     return df
@@ -265,16 +276,15 @@ def compute_squared_returns(
     return df
 
 
-def compute_past_ewm_vols(df: pd.DataFrame, spans: list[int]) -> pd.DataFrame:
+def compute_ewm_vol_features(df: pd.DataFrame) -> pd.DataFrame:
     """
-    Compute past ewm vols.
+    Compute past ewm vol (50m), and percent change from last
+    100-50m vol to 50-0m ewm vol.
 
     Parameters
     ----------
     df: pd.DataFrame
         DataFrame with Bitcoin price data.
-    spans: list[int]
-        List of spans to compute ewms for, e.g. [5, 10, 30] minutes
 
     Returns
     -------
@@ -282,11 +292,17 @@ def compute_past_ewm_vols(df: pd.DataFrame, spans: list[int]) -> pd.DataFrame:
         New dataframe with ewms calculated.
     """
     df = df.copy()
-    for span in spans:
-        df[f"past_{span}_span_ewm_vol"] = np.sqrt(
-            df["past_1m_sq_ret"].ewm(span=span).mean()
-        ) * np.sqrt(365 * 24 * 60)
+    df["past_50m_span_ewm_vol"] = np.sqrt(
+        df["past_1m_sq_ret"].ewm(span=50).mean()
+    ) * np.sqrt(365 * 24 * 60)
 
+    past_100m_to_50m_vol = np.sqrt(
+        df["past_1m_sq_ret"].rolling(window=50).mean().shift(50)
+    ) * np.sqrt(365 * 24 * 60)
+
+    df["past_50m_vol_pct_change"] = (
+        df["past_50m_span_ewm_vol"] / past_100m_to_50m_vol - 1
+    )
     return df
 
 
@@ -344,8 +360,9 @@ def add_features_responder(df_raw: pd.DataFrame) -> pd.DataFrame:
     df = compute_future_volatility(df)
     df = add_lagged_metadata(df)
 
-    # Add 50m, 1d, 7d, 30d past vol ewms
-    df = compute_past_volatility(df, [50, 24 * 60, 24 * 60 * 7, 24 * 60 * 30])
+    # Add 1d, 7d, 30d past vol
+    df = compute_past_volatility(df, [24 * 60, 24 * 60 * 7, 24 * 60 * 30])
+    df = compute_ewm_vol_features(df)
 
     df = add_data_releases(df)
 

@@ -18,3 +18,6 @@ dependencies:
   - pyarrow
   - statsmodels
   - pandas-market-calendars
+  - glum
+  - lightgbm
+  - joblib

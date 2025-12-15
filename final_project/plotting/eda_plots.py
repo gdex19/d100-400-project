@@ -105,7 +105,7 @@ def plot_day(
 
 def calculate_ewm_mse(df: pd.DataFrame, span: int) -> float:
     """
-    Calculate squared return ewm, use as a baseline predictor.
+    Calculate squared return ewm vol, use as a baseline predictor.
 
     Parameters
     ----------
@@ -131,9 +131,35 @@ def calculate_ewm_mse(df: pd.DataFrame, span: int) -> float:
     return mse
 
 
-def plot_ewm_mses(
-    df: pd.DataFrame, max_span: int
-) -> Figure | SubFigure | None:
+def calculate_equal_mse(df: pd.DataFrame, span: int) -> float:
+    """
+    Calculate squared return mean vol, use as a baseline predictor.
+
+    Parameters
+    ----------
+    df : pd.DataFrame
+        Bitcoin price data.
+    span: int
+        Span of ewm.
+
+    Returns
+    -------
+    float
+        MSE of ewm as baseline predictor.
+    """
+    df = df.copy()
+    df["pred"] = np.sqrt(
+        df["past_1m_sq_ret"].rolling(window=span).mean()
+    ) * np.sqrt(365 * 24 * 60)
+
+    df = df[df["pred"].notna() & df["future_30m_vol"].notna()]
+
+    mse = ((df["future_30m_vol"] - df["pred"]) ** 2).mean()
+
+    return mse
+
+
+def plot_mses(df: pd.DataFrame, max_span: int) -> Figure | SubFigure | None:
     """
     Graph mses of various backward-looking vols to predict future vol.
 
@@ -149,23 +175,42 @@ def plot_ewm_mses(
     Figure | SubFigure | None
         The matplotlib figure for the plot.
     """
-    mses = []
     spans = np.arange(1, max_span + 1)
+
+    ewm_mses = []
+    equal_mses = []
+
     for span in spans:
-        mses.append(calculate_ewm_mse(df, int(span)))
+        ewm_mses.append(calculate_ewm_mse(df, int(span)))
+        equal_mses.append(calculate_equal_mse(df, int(span)))
 
-    best_idx = int(np.argmin(mses))
-    best_span = spans[best_idx]
+    # Best spans
+    best_ewm_span = spans[int(np.argmin(ewm_mses))]
+    best_equal_span = spans[int(np.argmin(equal_mses))]
 
-    ax = sns.lineplot(x=spans, y=mses)
+    ax = sns.lineplot(x=spans, y=ewm_mses, label="EWM volatility")
+    sns.lineplot(
+        x=spans, y=equal_mses, label="Equal-weight rolling volatility", ax=ax
+    )
 
     ax.axvline(
-        x=best_span,
+        best_ewm_span,
         linestyle="--",
         linewidth=1.5,
-        alpha=0.8,
-        label=f"Best span = {best_span}",
+        alpha=0.7,
+        label=f"Best EWM span = {best_ewm_span}",
     )
+    ax.axvline(
+        best_equal_span,
+        linestyle=":",
+        linewidth=1.5,
+        alpha=0.7,
+        label=f"Best rolling span = {best_equal_span}",
+    )
+
+    ax.set_xlabel("Lookback window (minutes)")
+    ax.set_ylabel("Mean Squared Error")
+    ax.set_title("Baseline volatility predictors for 30m forward volatility")
     ax.legend()
 
     return ax.get_figure()
