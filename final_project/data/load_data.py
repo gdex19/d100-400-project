@@ -199,7 +199,7 @@ def read_data(symbol: str) -> pd.DataFrame:
     Parameters
     ----------
     symbol: str
-        Parquet of interest, one of [QQQ, SPY, BTC]
+        Parquet of interest.
 
     Returns
     -------

@@ -27,9 +27,22 @@ NUM_FEATURES = [
     "past_1440m_vol",
     "past_10080m_vol",
     "past_43200m_vol",
+    "past_30m_quote_volume",
+    "past_30m_trades",
 ]
 
-CAT_FEATURES = ["event_code", "time_of_day", "is_trading_day"]
+CAT_FEATURES = [
+    "event_code",
+    "time_of_day",
+    "is_us_trading_day",
+    "is_eu_trading_day",
+    "is_uk_trading_day",
+    "is_jp_trading_day",
+    "is_cn_trading_day",
+    "is_hk_trading_day",
+    "is_us_dst",
+    "is_eu_dst",
+]
 
 
 def add_dates_and_times(df: pd.DataFrame) -> pd.DataFrame:
@@ -60,26 +73,71 @@ def add_dates_and_times(df: pd.DataFrame) -> pd.DataFrame:
 
 def add_trading_days(df: pd.DataFrame) -> pd.DataFrame:
     """
-    Add trading day flag.
+    Add trading-day features for
+    US, UK, Europe, and Asia markets.
 
     Parameters
     ----------
-    df: pd.DataFrame
-        DataFrame with price data.
+    df : pd.DataFrame
+        DataFrame with open_time column.
 
     Returns
     -------
     pd.DataFrame
     """
     df = df.copy()
-    nyse = tcal.get_calendar("NYSE")
-    start_date = df["open_time"].str[:10].min()
-    end_date = df["open_time"].str[:10].max()
-    sched = nyse.schedule(start_date=start_date, end_date=end_date)
 
-    df["is_trading_day"] = (
-        df["open_time"].str[:10].isin(sched.index.astype(str))
+    dates = df["date"]
+
+    calendars = {
+        "us": "NYSE",
+        "uk": "LSE",
+        "eu": "XETR",
+        "jp": "JPX",
+        "cn": "SSE",
+        "hk": "HKEX",
+    }
+
+    for key, cal in calendars.items():
+        cal_obj = tcal.get_calendar(cal)
+        sched = cal_obj.schedule(
+            start_date=min(dates),
+            end_date=max(dates),
+        )
+        df[f"is_{key}_trading_day"] = dates.isin(sched.index.astype(str))
+
+    return df
+
+
+def add_dst(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Add daylight savings flag for
+    US and Europe
+
+    Parameters
+    ----------
+    df : pd.DataFrame
+        DataFrame with open_time column.
+
+    Returns
+    -------
+    pd.DataFrame
+    """
+
+    df = df.copy()
+    dates = df["date"]
+
+    # --- DST flags ---
+    us_dst = ((dates >= "2024-03-10") & (dates <= "2024-11-03")) | (
+        (dates >= "2025-03-09") & (dates <= "2025-11-02")
     )
+
+    eu_dst = ((dates >= "2024-03-31") & (dates <= "2024-10-27")) | (
+        (dates >= "2025-03-30") & (dates <= "2025-10-26")
+    )
+
+    df["is_us_dst"] = us_dst
+    df["is_eu_dst"] = eu_dst
 
     return df
 
@@ -102,6 +160,30 @@ def compute_future_volatility(df: pd.DataFrame) -> pd.DataFrame:
     df["future_30m_vol"] = np.sqrt(
         df["past_1m_sq_ret"].rolling(window=30).mean().shift(-30)
     ) * np.sqrt(365 * 24 * 60)
+
+    return df
+
+
+def add_lagged_metadata(
+    df: pd.DataFrame,
+) -> pd.DataFrame:
+    """
+    Add last 30 minutes cumulative number of trades and quote volume.
+
+    Parameters
+    ----------
+    df: pd.DataFrame
+        DataFrame with Bitcoin price data.
+
+    Returns
+    -------
+    pd.DataFrame
+    """
+    df = df.copy()
+    df["past_30m_trades"] = df["number_of_trades"].rolling(30).sum().shift(1)
+    df["past_30m_quote_volume"] = (
+        df["quote_asset_volume"].rolling(30).sum().shift(1)
+    )
 
     return df
 
@@ -256,10 +338,11 @@ def add_features_responder(df_raw: pd.DataFrame) -> pd.DataFrame:
     """
     df = add_dates_and_times(df_raw)
     df = add_trading_days(df)
+    df = add_dst(df)
     df = compute_returns(df, [1, 5, 30, 60, 120])
     df = compute_squared_returns(df, [1, 5, 30, 60, 120])
-    df = compute_squared_returns(df, [1, 5, 30, 60, 120])
     df = compute_future_volatility(df)
+    df = add_lagged_metadata(df)
 
     # Add 50m, 1d, 7d, 30d past vol ewms
     df = compute_past_volatility(df, [50, 24 * 60, 24 * 60 * 7, 24 * 60 * 30])
@@ -314,5 +397,17 @@ def winsorize_predictors(df: pd.DataFrame) -> pd.DataFrame:
 
 
 def write_data(df_final: pd.DataFrame, name: str) -> None:
+    """
+    Write prepared data to disk as parquet
+
+    Parameters
+    ----------
+    df_final: pd.DataFrame
+        DataFrame with features and responder.
+
+    Returns
+    -------
+    None
+    """
     fp = Path(__file__).parent.parent.parent / "data" / f"{name}.pq"
     df_final.to_parquet(fp)
