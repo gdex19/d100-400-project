@@ -1,0 +1,1 @@
+EVENT_WEIGHT = 10

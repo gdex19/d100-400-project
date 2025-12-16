@@ -22,3 +22,4 @@ dependencies:
   - lightgbm
   - joblib
   - skops
+  - dalex

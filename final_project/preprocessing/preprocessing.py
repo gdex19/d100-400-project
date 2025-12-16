@@ -324,13 +324,7 @@ def add_data_releases(
     """
     releases = pd.read_csv(DATA_RELEASE_FP)
     releases["open_time"] = releases["release_time"].astype(str)
-    releases["event_code"] = releases["event_type"].map(
-        {
-            "Federal Reserve Rate Decision": "FED",
-            "Nonfarm Payrolls": "JOB",
-            "Consumer Price Index": "CPI",
-        }
-    )
+    releases["event_code"] = releases["event_type"]
     data = releases[["open_time", "event_code"]]
     df = pd.merge(left=df, right=data, on="open_time", how="left")
     df["event_code"] = df["event_code"].fillna("NONE")

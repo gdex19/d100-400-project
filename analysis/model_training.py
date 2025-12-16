@@ -19,7 +19,9 @@ from final_project.modeling import (
     save_models,
     get_glm_pipeline,
     get_lgbm_pipeline,
+    EVENT_WEIGHT,
 )
+
 
 # %%
 df = read_data("clean_data")
@@ -61,7 +63,7 @@ fig = plot_lasso_paths_numeric(coef_path)
 # right-skewed variables, and scale the rest. The pipe is defined
 # in the modeling module.
 
-# TODO: add clipped features?
+# TODO: try clipped features?
 glm_pipe = get_glm_pipeline()
 
 log_step = FunctionTransformer(np.log1p, feature_names_out="one-to-one")
@@ -70,14 +72,8 @@ glm_param_grid = {
     # log-transform on/off
     "preprocess__log_num__log": ["passthrough", log_step],
     # regularization from project description
-    "glm__alpha": np.logspace(-6, -1, 10),
-    "glm__l1_ratio": [
-        0.01,
-        0.05,
-        0.1,
-        0.15,
-        0.3,
-    ],  # 0.1 was best, remove high L1's
+    "glm__alpha": np.logspace(-7, -2, 10),
+    "glm__l1_ratio": [0.1, 0.3, 0.5, 0.7],
 }
 
 # Forward-looking CV
@@ -119,12 +115,15 @@ lgbm_cv = RandomizedSearchCV(
 
 X_train = df_train[NUM_FEATURES + CAT_FEATURES]
 y_train = df_train[RESPONDER]
+sample_weight_train = np.where(
+    X_train["event_code"] != "NONE", EVENT_WEIGHT, 1
+)
 
-glm_cv.fit(X_train, y_train)
+glm_cv.fit(X_train, y_train, glm__sample_weight=sample_weight_train)
 
 print("GLM best:", glm_cv.best_params_, glm_cv.best_score_)
 # %%
-lgbm_cv.fit(X_train, y_train)
+lgbm_cv.fit(X_train, y_train, lgbm__sample_weight=sample_weight_train)
 print("LGBM best:", lgbm_cv.best_params_, lgbm_cv.best_score_)
 
 # %%

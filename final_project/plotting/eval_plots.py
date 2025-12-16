@@ -1,8 +1,102 @@
 import matplotlib.pyplot as plt
 from matplotlib.figure import Figure, SubFigure
 from sklearn.linear_model import LinearRegression
+from sklearn.pipeline import Pipeline
 import numpy as np
 import pandas as pd
+import dalex as dx
+
+
+def plot_feature_relevance(
+    model: Pipeline,
+    X: pd.DataFrame,
+    y: pd.Series,
+) -> None:
+    """
+    Plot feature relevance for a fitted model.
+
+    Parameters
+    ----------
+    model: Pipeline
+        Fitted model.
+    X: pd.DataFrame
+        Validation features.
+    y: pd.Series
+        Validation responder.
+
+    Returns
+    -------
+    None
+    """
+    explainer = dx.Explainer(
+        model=model,
+        data=X,
+        y=y,
+        model_type="regression",
+    )
+
+    relevance = explainer.model_parts()
+    relevance.plot()
+
+
+def plot_pdps(
+    model: Pipeline,
+    X: pd.DataFrame,
+    y: pd.Series,
+    n_top: int = 5,
+) -> None:
+    """
+    Plot PDPs for given model.
+
+    Parameters
+    ----------
+    model: Pipeline
+        Fitted model.
+    X: pd.DataFrame
+        Validation features.
+    y: pd.Series
+        Validation responder.
+    n_top: int
+        Number of top features to plot.
+
+    Returns
+    -------
+    None
+    """
+    explainer = dx.Explainer(model=model, data=X, y=y, model_type="regression")
+
+    rel = explainer.model_parts()
+    rel.plot(max_vars=n_top)
+
+    imp = rel.result
+    if imp is None:
+        raise ValueError("dalex model_parts() returned no result")
+
+    imp = imp[
+        (imp["variable"] != "_baseline_") & (imp["variable"].isin(X.columns))
+    ]
+    score_col = imp.select_dtypes("number").columns[0]
+    top = (
+        imp.sort_values(score_col, ascending=False)
+        .head(n_top)["variable"]
+        .tolist()
+    )
+
+    num_set = set(X.select_dtypes(include="number").columns)
+    num_feats = [f for f in top if f in num_set]
+    cat_feats = [f for f in top if f not in num_set]
+
+    prof_num = prof_cat = None
+    if num_feats:
+        prof_num = explainer.model_profile(
+            variables=num_feats, variable_type="numerical"
+        )
+        prof_num.plot()
+    if cat_feats:
+        prof_cat = explainer.model_profile(
+            variables=cat_feats, variable_type="categorical"
+        )
+        prof_cat.plot()
 
 
 def plot_pred_vs_true(

@@ -15,19 +15,20 @@ def save_models(
     glm_params: Dict[str, Any], lgbm_params: Dict[str, Any]
 ) -> None:
     """
-    Save best hyperparams for GLM and LGBM.
+        Save best hyperparams for GLM and LGBM.
 
-    Parameters
-    ----------
-    glm_params : Dict[str, Any]
-        Best hyperparams for glm.
+        Parameters
+        ----------
+        glm_params : Dict[str, Any]
+            Best hyperparams for glm.
 
-    lgbm_params : Dict[str, Any]
-        Best hyperparams for lgbm.
+        lgbm_params : Dict[str, Any]
+            Best hyperparams for lgbm.
 
-    Returns
-    -------
-    None
+    .
+        Returns
+        -------
+        None
     """
     model_dir = Path(__file__).parent.parent.parent / "models"
     model_dir.mkdir(parents=True, exist_ok=True)
@@ -42,7 +43,9 @@ def save_models(
 
 
 def load_models(
-    X_train: pd.DataFrame, y_train: pd.Series
+    X_train: pd.DataFrame,
+    y_train: pd.Series,
+    sample_weights: np.ndarray[Any, Any],
 ) -> Tuple[Pipeline, Pipeline]:
     """
     Load best hyperparameters from disk, rebuild pipelines, fit on
@@ -55,6 +58,9 @@ def load_models(
 
     y_train : pd.DataFrame
         Responders from training script.
+
+    sample_weights : np.ndarray[Any, Any]
+        Sample weights, accounting for imbalanced events
 
     Returns
     -------
@@ -84,7 +90,7 @@ def load_models(
     glm = get_glm_pipeline().set_params(**glm_params)
     lgbm = get_lgbm_pipeline().set_params(**lgbm_params)
 
-    glm.fit(X_train, y_train)
-    lgbm.fit(X_train, y_train)
+    glm.fit(X_train, y_train, glm__sample_weight=sample_weights)
+    lgbm.fit(X_train, y_train, lgbm__sample_weight=sample_weights)
 
     return glm, lgbm
