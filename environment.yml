@@ -21,3 +21,4 @@ dependencies:
   - glum
   - lightgbm
   - joblib
+  - skops

@@ -1,25 +1,25 @@
 # %%
 import numpy as np
-from glum import GeneralizedLinearRegressor, GammaDistribution
 from sklearn.compose import ColumnTransformer
 from sklearn.preprocessing import (
     OneHotEncoder,
     StandardScaler,
     FunctionTransformer,
 )
-from sklearn.pipeline import Pipeline
 from sklearn.model_selection import (
     GridSearchCV,
     TimeSeriesSplit,
     RandomizedSearchCV,
 )
-from lightgbm import LGBMRegressor
 from final_project.data import read_data, split_data
 from final_project.preprocessing import NUM_FEATURES, CAT_FEATURES, RESPONDER
 from final_project.plotting import plot_lasso_paths_numeric
-from final_project.modeling import fit_glm_lasso_path
-import joblib
-from pathlib import Path
+from final_project.modeling import (
+    fit_glm_lasso_path,
+    save_models,
+    get_glm_pipeline,
+    get_lgbm_pipeline,
+)
 
 # %%
 df = read_data("clean_data")
@@ -58,57 +58,13 @@ fig = plot_lasso_paths_numeric(coef_path)
 
 # %%
 # Now we make our glm pipeline. We will log-transform the positive,
-# right-skewed variables, and scale the rest.
+# right-skewed variables, and scale the rest. The pipe is defined
+# in the modeling module.
 
-
-LINEAR_NUM_FEATURES = [
-    f
-    for f in NUM_FEATURES
-    if any(k in f.lower() for k in ["m_ret", "pct_change"])
-]
-
-LOG_NUM_FEATURES = [f for f in NUM_FEATURES if f not in LINEAR_NUM_FEATURES]
+# TODO: add clipped features?
+glm_pipe = get_glm_pipeline()
 
 log_step = FunctionTransformer(np.log1p, feature_names_out="one-to-one")
-
-num_log_pipeline = Pipeline(
-    steps=[
-        ("log", "passthrough"),
-        ("scale", StandardScaler()),
-    ]
-)
-
-preprocessor_glm = ColumnTransformer(
-    transformers=[
-        ("log_num", num_log_pipeline, LOG_NUM_FEATURES),
-        (
-            "lin_num",
-            Pipeline([("scale", StandardScaler())]),
-            LINEAR_NUM_FEATURES,
-        ),
-        (
-            "cat",
-            OneHotEncoder(
-                drop="first", sparse_output=False, handle_unknown="ignore"
-            ),
-            CAT_FEATURES,
-        ),
-    ],
-)
-
-glm_pipe = Pipeline(
-    steps=[
-        ("preprocess", preprocessor_glm),
-        (
-            "glm",
-            GeneralizedLinearRegressor(
-                family=GammaDistribution(),
-                link="log",
-                max_iter=10_000,
-            ),
-        ),
-    ]
-)
 
 glm_param_grid = {
     # log-transform on/off
@@ -138,28 +94,7 @@ glm_cv = GridSearchCV(
 
 # %%
 # Make lgbm pipeline
-preprocessor_lgbm = ColumnTransformer(
-    transformers=[
-        ("num", "passthrough", NUM_FEATURES),
-        (
-            "cat",
-            OneHotEncoder(
-                drop="first", sparse_output=False, handle_unknown="ignore"
-            ),
-            CAT_FEATURES,
-        ),
-    ],
-)
-
-lgbm_pipe = Pipeline(
-    steps=[
-        ("preprocess", preprocessor_lgbm),
-        (
-            "lgbm",
-            LGBMRegressor(objective="gamma", random_state=42, n_jobs=1),
-        ),
-    ]
-)
+lgbm_pipe = get_lgbm_pipeline()
 
 lgbm_param_dist = {
     "lgbm__learning_rate": [0.005, 0.01, 0.05, 0.1],
@@ -195,12 +130,5 @@ print("LGBM best:", lgbm_cv.best_params_, lgbm_cv.best_score_)
 # %%
 # Save models to disk
 # directory to save models
-model_dir = Path(__file__).parent.parent / "models"
-model_dir.mkdir(parents=True, exist_ok=True)
-
-# save GLM
-joblib.dump(glm_cv.best_estimator_, model_dir / "glm.joblib")
-
-# save LGBM
-joblib.dump(lgbm_cv.best_estimator_, model_dir / "lgbm.joblib")
+save_models(glm_cv.best_params_, lgbm_cv.best_params_)
 # %%

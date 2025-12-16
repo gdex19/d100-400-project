@@ -1,4 +1,4 @@
 *.pq
 *.egg-info/
 __pycache__/
-*.joblib
+*.json
