@@ -31,7 +31,7 @@ To run the checks manually, run:
 pre-commit run --all-files
 ```
 ## Installing the package
-To get the data and run the analyses, first install the project's package:
+Before downloading the data and running the analyses, you must first install the project's package:
 
 ```bash
 pip install -e .
