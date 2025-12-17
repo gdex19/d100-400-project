@@ -30,6 +30,12 @@ To run the checks manually, run:
 ```bash
 pre-commit run --all-files
 ```
+## Installing the package
+To get the data and run the analyses, first install the project's package:
+
+```bash
+pip install -e .
+```
 
 # Getting the data
 We have written a script to pull the relevant data from Binance's API into the ```data``` directory. Run the following command
@@ -40,10 +46,5 @@ download-data --start_date START_DATE
 where ```START_DATE``` is of the form YYYY/MM/DD. For our analysis, we used data from 2023/11/01 onwards. This may take a few minutes.
 
 # Reproducing the analysis
-After pulling the data as above, run the eda_cleaning.ipynb to see the exploratory data analysis and save the cleaned
-data. Next, run model_training.py to select hyperparameters and save the best results. Finally, run mode_evaluation.ipynb to train the models with these parameters and evaluate the models on the validation set.
-
-If you want to run the analyses outside of the root folder, first run the following from the root folder:
-```bash
-pip install -e .
-```
+After pulling the data as above, run ```eda_cleaning.ipynb``` to see the exploratory data analysis and save the cleaned
+data. Next, run ```model_training.py``` to select hyperparameters and save the best results. Finally, run ```mode_evaluation.ipynb``` to train the models with these parameters and evaluate the models on the validation set.
