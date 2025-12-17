@@ -89,6 +89,7 @@ def load_models(
 
     glm = get_glm_pipeline().set_params(**glm_params)
     lgbm = get_lgbm_pipeline().set_params(**lgbm_params)
+    lgbm.set_params(lgbm__verbosity=-1)
 
     glm.fit(X_train, y_train, glm__sample_weight=sample_weights)
     lgbm.fit(X_train, y_train, lgbm__sample_weight=sample_weights)

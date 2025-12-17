@@ -1,10 +1,12 @@
 import matplotlib.pyplot as plt
 from matplotlib.figure import Figure, SubFigure
+from matplotlib.patches import Patch
 from sklearn.linear_model import LinearRegression
 from sklearn.pipeline import Pipeline
 import numpy as np
 import pandas as pd
 import dalex as dx
+from final_project.evaluation import evaluate_predictions
 
 
 def plot_feature_relevance(
@@ -29,10 +31,7 @@ def plot_feature_relevance(
     None
     """
     explainer = dx.Explainer(
-        model=model,
-        data=X,
-        y=y,
-        model_type="regression",
+        model=model, data=X, y=y, model_type="regression", verbose=False
     )
 
     relevance = explainer.model_parts()
@@ -63,10 +62,11 @@ def plot_pdps(
     -------
     None
     """
-    explainer = dx.Explainer(model=model, data=X, y=y, model_type="regression")
+    explainer = dx.Explainer(
+        model=model, data=X, y=y, model_type="regression", verbose=False
+    )
 
     rel = explainer.model_parts()
-    rel.plot(max_vars=n_top)
 
     imp = rel.result
     if imp is None:
@@ -92,11 +92,13 @@ def plot_pdps(
             variables=num_feats, variable_type="numerical"
         )
         prof_num.plot()
+        plt.show()
     if cat_feats:
         prof_cat = explainer.model_profile(
             variables=cat_feats, variable_type="categorical"
         )
         prof_cat.plot()
+        plt.show()
 
 
 def plot_pred_vs_true(
@@ -211,6 +213,92 @@ def plot_day_predictions(
 
     for label in ax.get_xticklabels()[::2]:
         label.set_visible(False)
+
+    fig.tight_layout()
+    return fig
+
+
+def plot_model_metrics(
+    df_pred_raw: pd.DataFrame,
+    df_pred_clip: pd.DataFrame,
+) -> Figure | SubFigure | None:
+    """
+    Compare baseline, GLM, and LGBM on raw vs clipped data
+    metrics on one bar chart.
+
+    Note: this is essentially unedited ChatGPT code, as I couldn't get this
+    working myself.
+
+    Parameters
+    ----------
+    df_pred_raw : pd.DataFrame
+        Predictions from raw data.
+    df_pred_clip : pd.DataFrame
+        Predictions from clipped data.
+    """
+    cols = {
+        "Baseline": "baseline_y_pred",
+        "GLM": "glm_y_pred",
+        "LGBM": "lgbm_y_pred",
+    }
+    models = list(cols.keys())
+    colors = plt.rcParams["axes.prop_cycle"].by_key()["color"][: len(models)]
+
+    raw = {
+        m: evaluate_predictions(
+            df_pred_raw["y_true"], df_pred_raw[c], df_pred_raw["weight"]
+        )
+        for m, c in cols.items()
+    }
+    clip = {
+        m: evaluate_predictions(
+            df_pred_clip["y_true"], df_pred_clip[c], df_pred_clip["weight"]
+        )
+        for m, c in cols.items()
+    }
+
+    metrics = list(next(iter(raw.values())).index)
+    x = range(len(metrics))
+    w = 0.12
+
+    fig, ax = plt.subplots(figsize=(10, 5))
+
+    for j, (m, color) in enumerate(zip(models, colors)):
+        raw_vals = raw[m].reindex(metrics).to_numpy()
+        clip_vals = clip[m].reindex(metrics).to_numpy()
+
+        # positions: per model we have two bars (raw, clipped)
+        raw_offset = (j * 2 + 0 - (len(models) * 2 - 1) / 2) * w
+        clip_offset = (j * 2 + 1 - (len(models) * 2 - 1) / 2) * w
+
+        ax.bar(
+            [i + raw_offset for i in x],
+            raw_vals,
+            width=w,
+            color=color,
+            alpha=1.0,
+        )
+        ax.bar(
+            [i + clip_offset for i in x],
+            clip_vals,
+            width=w,
+            color=color,
+            alpha=0.45,
+        )
+
+    ax.set_xticks(list(x))
+    ax.set_xticklabels(metrics, rotation=30, ha="right")
+    ax.set_title(
+        "Model comparison across metrics (lighter = Winsorized features)"
+    )
+    ax.set_ylabel("Metric value")
+    ax.set_xlabel("")
+    ax.grid(axis="y", alpha=0.3)
+
+    ax.legend(
+        handles=[Patch(facecolor=c, label=m) for m, c in zip(models, colors)],
+        title="",
+    )
 
     fig.tight_layout()
     return fig

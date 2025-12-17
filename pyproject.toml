@@ -3,7 +3,7 @@ name = "final_project"
 version = "0.1"
 requires-python = ">=3.10"
 authors = [
-  {name = "Gil Dexter"},
+  {name = "Anonymous"},
 ]
 description = "Predicting Bitcoin volatility!"
 readme = "README.md"

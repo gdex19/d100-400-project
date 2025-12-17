@@ -5,6 +5,7 @@ from .eval_plots import (
     plot_day_predictions,
     plot_feature_relevance,
     plot_pdps,
+    plot_model_metrics,
 )
 
 __all__ = [
@@ -16,4 +17,5 @@ __all__ = [
     "plot_day_predictions",
     "plot_feature_relevance",
     "plot_pdps",
+    "plot_model_metrics",
 ]
