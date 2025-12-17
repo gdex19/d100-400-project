@@ -37,4 +37,8 @@ in the command line to download data:
 ```bash
 download-data --start_date START_DATE
 ```
-where ```START_DATE``` is of the form YYYY/MM/DD. For our analysis, we used data from 2023/11/01 onwards.
+where ```START_DATE``` is of the form YYYY/MM/DD. For our analysis, we used data from 2023/11/01 onwards. This may take a few minutes.
+
+# Reproducing the analysis
+After pulling the data as above, run the eda_cleaning.ipynb to see the exploratory data analysis and save the cleaned
+data. Next, run model_training.py to select hyperparameters and save the best results. Finally, run mode_evaluation.ipynb to load the models with these parameters, train on the data, and evaluate the models on the test set.
