@@ -91,7 +91,11 @@ def get_lgbm_pipeline() -> Pipeline:
             ("preprocess", preprocessor_lgbm),
             (
                 "lgbm",
-                LGBMRegressor(objective="gamma", random_state=42, n_jobs=1),
+                LGBMRegressor(
+                    objective="gamma",
+                    random_state=42,
+                    n_jobs=1,
+                ),
             ),
         ]
     )
