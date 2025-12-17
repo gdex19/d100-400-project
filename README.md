@@ -41,4 +41,4 @@ where ```START_DATE``` is of the form YYYY/MM/DD. For our analysis, we used data
 
 # Reproducing the analysis
 After pulling the data as above, run the eda_cleaning.ipynb to see the exploratory data analysis and save the cleaned
-data. Next, run model_training.py to select hyperparameters and save the best results. Finally, run mode_evaluation.ipynb to load the models with these parameters, train on the data, and evaluate the models on the test set.
+data. Next, run model_training.py to select hyperparameters and save the best results. Finally, run mode_evaluation.ipynb to train the models with these parameters and evaluate the models on the validation set.
